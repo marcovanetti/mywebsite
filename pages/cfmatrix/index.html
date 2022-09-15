@@ -1,0 +1,247 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<!--
+I wrote this code in 2007, I had no Javascript skills at the time.
+I've never refactored it on purpose, it's like looking at a photo from my childhood.
+
+Marco Vanetti
+-->
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>Confusion matrix online calculator</title>
+    <link rel='stylesheet' href='/css/style.css' type='text/css'/>
+    <script type="text/javascript" src="/js/script.js"></script>
+    <script type="text/javascript" language="javascript">
+        //<![CDATA[
+        /* Ottiene il parametro di nome parameter dalla stringa dell'indirizzo */
+        function get_par(parameter) {
+            var address = window.location.toString() + "&";
+            var name_pos = address.indexOf(parameter + "=");
+            if (name_pos == -1) return "";
+            var substr = address.substring(name_pos);
+            var s_start = substr.indexOf("=");
+            var s_end = substr.indexOf("&");
+            var parameter = substr.substring(s_start + 1, s_end);
+            return parameter;
+        }
+
+        function reload_cm() {
+            var address = window.location.toString();
+            if ((qmp = address.indexOf("?")) + 1) {
+                window.location.href = address.substring(0, qmp) + "?noc=" + document.conf_matrix.nofcl.value;
+            } else {
+                window.location.href = address + "?noc=" + document.conf_matrix.nofcl.value;
+            }
+        }
+
+        /* Arrotonda il numero alla n cifra decimale */
+        function n_round(the_number, n) {
+            return Math.round(the_number * Math.pow(10, n)) / Math.pow(10, n);
+        }
+
+        /* Calcola la matrice di confusione */
+        function compute_matrix() {
+            var n_of_elements;
+
+            /* Calcola i totali per classificazione */
+            for (total = 0, r = 1; r <= n_of_classes; r++) { /* Riga per riga */
+                for (c = 1; c <= n_of_classes; c++) { /* Colonna per colonna */
+                    total += parseInt(eval("document.conf_matrix.el" + r + "_" + c + ".value"));
+                }
+                eval("document.conf_matrix.tot_cla" + r + ".value = " + total);
+                total = 0;
+            }
+
+            /* Calcola i totali per verita' */
+            for (total = 0, c = 1; c <= n_of_classes; c++) { /* Colonna per colonna */
+                for (r = 1; r <= n_of_classes; r++) { /* Riga per riga */
+                    total += parseInt(eval("document.conf_matrix.el" + r + "_" + c + ".value"));
+                }
+                eval("document.conf_matrix.tot_ver" + c + ".value = " + total);
+                total = 0;
+            }
+
+            /* Calcola il totale degli elementi da classificare */
+            for (total = 0, r = 1; r <= n_of_classes; r++) { /* Somma totali */
+                total += parseInt(eval("document.conf_matrix.tot_cla" + r + ".value"));
+            }
+            n_of_elements = document.conf_matrix.the_total.value = total;
+
+            /* Calcola la user accuracy */
+            for (r = 1; r <= n_of_classes; r++) { /* Riga per riga */
+                total = parseInt(eval("document.conf_matrix.tot_cla" + r + ".value"));
+                el_diag = parseInt(eval("document.conf_matrix.el" + r + "_" + r + ".value"));
+                error_q = n_round((el_diag / total) * 100, 3);
+                if (total) {
+                    eval("document.conf_matrix.err_om" + r + ".value = " + error_q + " + \"%\"");
+                } else {
+                    eval("document.conf_matrix.err_om" + r + ".value = \"No data\"");
+                }
+            }
+
+            /* Calcola la producer accuracy */
+            for (c = 1; c <= n_of_classes; c++) { /* Colonna per colonna */
+                total = parseInt(eval("document.conf_matrix.tot_ver" + c + ".value"));
+                el_diag = parseInt(eval("document.conf_matrix.el" + c + "_" + c + ".value"));
+                error_q = n_round((el_diag / total) * 100, 3);
+                if (total) {
+                    eval("document.conf_matrix.err_com" + c + ".value = " + error_q + " + \"%\"");
+                } else {
+                    eval("document.conf_matrix.err_com" + c + ".value = \"No data\"");
+                }
+            }
+
+            /* Calcola l'accuratezza globale */
+            for (diag_sum = 0, d = 1; d <= n_of_classes; d++) { /* Elemento diagonale per elemento diagonale */
+                diag_sum += parseInt(eval("document.conf_matrix.el" + d + "_" + d + ".value"));
+            }
+            oa = diag_sum / n_of_elements;
+            if (n_of_elements) {
+                document.conf_matrix.oa_factor.value = n_round(oa * 100, 3) + "%";
+            } else {
+                document.conf_matrix.oa_factor.value = "No data";
+            }
+
+            /* Calcola l'expected accuracy, pc */
+            for (pc = 0, i = 1; i <= n_of_classes; i++) { /* Classe per classe */
+                /* Calcola la somma degli elementi sulla riga i */
+                for (r_sum = 0, c = 1; c <= n_of_classes; c++) { /* Colonna per colonna */
+                    r_sum += parseInt(eval("document.conf_matrix.el" + i + "_" + c + ".value"));
+                }
+                /* Calcola la somma degli elementi sulla colonna i */
+                for (c_sum = 0, r = 1; r <= n_of_classes; r++) { /* Riga per riga */
+                    c_sum += parseInt(eval("document.conf_matrix.el" + r + "_" + i + ".value"));
+                }
+                pc += r_sum * c_sum;
+            }
+            pc /= (n_of_elements * n_of_elements);
+
+            /* Calcola il parametro k */
+            kf = n_round(((oa - pc) / (1 - pc)), 3);
+
+            if (n_of_elements) {
+                document.conf_matrix.k_factor.value = kf;
+            } else {
+                document.conf_matrix.k_factor.value = "No data";
+            }
+
+        }
+        //]]>
+    </script>
+</head>
+
+<body>
+<noscript>
+    Javascript must be enabled!
+</noscript>
+<div id="main">
+
+    <div id="top">
+        <h1>Confusion matrix online calculator</h1>
+
+        <a href="/">Home page</a>
+        <hr/>
+    </div>
+    <div id="cmcalculator">
+        <form name="conf_matrix">
+            <script type="text/javascript" language="javascript">
+                <!--
+                var n_of_classes = parseInt(get_par("noc"));
+
+                if (!(n_of_classes > 1)) {
+                    n_of_classes = 2;
+                }
+
+                document.write("<br />Draw confusion matrix for <input type=\"text\" name = \"nofcl\" size=\"2\" value=\"" + n_of_classes + "\" onchange=\"reload_cm()\"> classes.");
+                -->
+            </script>
+            <table>
+                <tr align="center">
+                    <td><b>Classifier <br/> results</b></td>
+                    <td><b>Truth data</b>
+                        <table border="1" cellpadding="4" cellspacing="0">
+
+                            <script type="text/javascript" language="javascript">
+                                <!--
+                                var n_of_classes = parseInt(get_par("noc"));
+                                var cell = "", mark = "";
+
+                                if (!(n_of_classes > 1)) {
+                                    n_of_classes = 2;
+                                }
+
+                                /* Mostra la matrice di confusione formattata e pronta all'input utente */
+
+                                for (r = 0; r <= n_of_classes + 2; r++) { /* Riga per riga */
+                                    document.write("<tr align=\"center\">\n");
+                                    for (c = 0; c <= n_of_classes + 2; c++) { /* Colonna per colonna */
+                                        if (((c == n_of_classes + 1) && (r == n_of_classes + 2)) || ((r == n_of_classes + 1) && (c == n_of_classes + 2)) || ((r == n_of_classes + 2) && (c == n_of_classes + 2))) { /* Celle da saltare */
+                                            mark = " bgcolor=\"gray\"";
+                                            cell = "";
+                                        } else if ((c == n_of_classes + 1) && (r == n_of_classes + 1)) { /* Totale elementi */
+                                            mark = " bgcolor=\"green\"";
+                                            cell = "<input type=\"text\" name=\"the_total\" value=\"0\" style=\"text-align: right\" size=\"6\" readonly>";
+                                        } else if (!r && c == n_of_classes + 1) { /* Totali per classificazione */
+                                            mark = " bgcolor=\"lightgreen\"";
+                                            cell = "<b>Classification <br /> overall</b>";
+                                        } else if (!c && r == n_of_classes + 1) { /* Totali per verita' */
+                                            mark = " bgcolor=\"lightgreen\"";
+                                            cell = "<b>Truth <br />overall</b>";
+                                        } else if (!r && c == n_of_classes + 2) { /* % Producer accuracy */
+                                            mark = " bgcolor=\"red\"";
+                                            cell = "<b>User's<br />accuracy<br />(Precision)</b>";
+                                        } else if (!c && r == n_of_classes + 2) { /* % User accuracy */
+                                            mark = " bgcolor=\"red\"";
+                                            cell = "<b>Producer's<br />accuracy<br />(Recall)</b>";
+                                        } else if (c == n_of_classes + 2 || r == n_of_classes + 2) { /* Celle errori */
+                                            mark = " bgcolor=\"red\"";
+                                            cell = "<input type=\"text\" name=\"err_" + (c == n_of_classes + 2 ? "om" + r : "com" + c) + "\" value=\"0\" style=\"text-align: right\" size=\"6\" readonly>";
+                                        } else if (c == n_of_classes + 1 || r == n_of_classes + 1) { /* Celle totali */
+                                            mark = " bgcolor=\"lightgreen\"";
+                                            cell = "<input type=\"text\" name=\"tot_" + (c == n_of_classes + 1 ? "cla" + r : "ver" + c) + "\" value=\"0\" style=\"text-align: right\" size=\"6\" readonly>";
+                                        } else if (!r ^ !c) { /* Nomi delle classi */
+                                            mark = " bgcolor=\"lightblue\"";
+                                            cell = "<b>Class " + (r ? r : c) + "</b>";
+                                        } else if (r || c) { /* Celle contenenti i valori utente */
+                                            if (r == c) {  /* Marca la casella se e' sulla diagonale */
+                                                mark = " bgcolor=\"orange\"";
+                                            } else {
+                                                mark = " bgcolor=\"yellow\"";
+                                            }
+                                            cell = "<input type=\"text\" name=\"el" + r + "_" + c + "\" value=\"0\" style=\"text-align: right\" size=\"4\">";
+                                        }
+
+                                        document.write("<td" + mark + ">" + cell + "</td>\n");
+                                        mark = "";
+                                    }
+                                    document.write("</tr>\n");
+                                }
+                                -->
+                            </script>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td><b>Overall <br/> accuracy (OA): </b></td>
+                    <td><input type="text" name="oa_factor" value="0" style="text-align: right" size="8" readonly></td>
+                </tr>
+                <tr>
+                    <td><b>Kappa<sup>1</sup>: </b></td>
+                    <td><input type="text" name="k_factor" value="0" style="text-align: right" size="8" readonly></td>
+                </tr>
+            </table>
+            <br/><input type="button" onClick="compute_matrix();" value=" > Calculate confusion matrix < ">
+            <hr/>
+        </form>
+    </div>
+</div>
+<h5>
+    2007 by Marco Vanetti <br/><br/>
+    <sup>1</sup>See: J. Richard Landis and Gary G. Koch - <i>The Measurement of Observer Agreement for Categorical
+    Data</i>, Biometrics, Vol. 33, No. 1 (Mar., 1977), pp. 159-174.
+</h5>
+</body>
+</html>
